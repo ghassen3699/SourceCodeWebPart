@@ -5,6 +5,7 @@ import {
   IPropertyPaneConfiguration,
   PropertyPaneTextField
 } from '@microsoft/sp-property-pane';
+import { sp } from '@pnp/sp';
 import { BaseClientSideWebPart } from '@microsoft/sp-webpart-base';
 import { IReadonlyTheme } from '@microsoft/sp-component-base';
 
@@ -12,9 +13,18 @@ import * as strings from 'SourceCodeWebPartWebPartStrings';
 import SourceCodeWebPart from './components/SourceCodeWebPart';
 import { ISourceCodeWebPartProps } from './components/ISourceCodeWebPartProps';
 
+
+
 export interface ISourceCodeWebPartWebPartProps {
   description: string;
+  context: any;
 }
+
+
+
+
+
+
 
 export default class SourceCodeWebPartWebPart extends BaseClientSideWebPart<ISourceCodeWebPartWebPartProps> {
 
@@ -22,9 +32,12 @@ export default class SourceCodeWebPartWebPart extends BaseClientSideWebPart<ISou
   private _environmentMessage: string = '';
 
   protected onInit(): Promise<void> {
-    this._environmentMessage = this._getEnvironmentMessage();
-
-    return super.onInit();
+    return super.onInit().then(_ => {
+      // other init code may be present
+      sp.setup({
+        spfxContext: this.context
+      });
+    });
   }
 
   public render(): void {
@@ -35,7 +48,8 @@ export default class SourceCodeWebPartWebPart extends BaseClientSideWebPart<ISou
         isDarkTheme: this._isDarkTheme,
         environmentMessage: this._environmentMessage,
         hasTeamsContext: !!this.context.sdks.microsoftTeams,
-        userDisplayName: this.context.pageContext.user.displayName
+        userDisplayName: this.context.pageContext.user.displayName,
+        context: this.context
       }
     );
 
@@ -71,6 +85,15 @@ export default class SourceCodeWebPartWebPart extends BaseClientSideWebPart<ISou
 
   protected get dataVersion(): Version {
     return Version.parse('1.0');
+  }
+
+  protected get disableReactivePropertyChanges(): boolean {
+    return true;
+  }
+
+  protected onAfterPropertyPaneChangesApplied(): void {
+    ReactDom.unmountComponentAtNode(this.domElement);
+    this.render();
   }
 
   protected getPropertyPaneConfiguration(): IPropertyPaneConfiguration {
